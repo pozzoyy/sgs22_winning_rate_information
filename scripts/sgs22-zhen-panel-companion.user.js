@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         三国杀打小抄 · 2v2组阵面板
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.1
+// @version      1.0.2
 // @description  配合原版打小抄，按座位显示选将候选与组阵胜率。
 // @icon         https://i0.hdslb.com/bfs/new_dyn/17ec41a0ca79633b77399065ab80da3f2138912.png
 // @match        https://game.4399iw2.com/yxxsgs/*
@@ -21,6 +21,19 @@
     'use strict';
 
     const ratesURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/zhen_winrate_latest.json';
+    // Mode 9 is the four-player 2v2 room observed in the diagnostic report.
+    const supportedModes = new Set([8, 9]);
+    let localUserID;
+    function currentUserID() {
+        if (localUserID) return localUserID;
+        try {
+            const raw = localStorage.getItem('DXC_selfUserID');
+            if (!raw) return undefined;
+            let value;
+            try { value = JSON.parse(raw); } catch { value = raw; }
+            return value != null && String(value) !== '0' ? String(value) : undefined;
+        } catch { return undefined; }
+    }
     const offers = new Map();
     const order = new Map();
     let roster = [], mode = 0, rates, names, panel, header;
@@ -35,8 +48,13 @@
 
     function receive(type, data) {
         switch (type) {
+            case 'CRespAuth':
+            case 'CRespLogin':
+                if (data.userID != null && String(data.userID) !== '0') localUserID = String(data.userID);
+                break;
             case 'CReqModeMatch':
             case 'CReqLobbyJoin':
+            case 'CRespLobbyTableCreate':
             case 'CRespLobbyTableJoin':
             case 'CRespLobbyJoin': {
                 const next = Number(data.modeIDInt || data.curModeID || data.modeID);
@@ -161,9 +179,8 @@
     }
 
     function describe() {
-        if (mode !== 8 || roster.length !== 4) return '等待 2v2 排位选将';
-        let uid;
-        try { uid = JSON.parse(localStorage.getItem('DXC_selfUserID')); } catch {}
+        if (!supportedModes.has(mode) || roster.length !== 4) return '等待 2v2 选将（当前模式 ' + mode + '，玩家 ' + roster.length + '）';
+        const uid = currentUserID();
         const me = roster.find(p => uid && p[1] === String(uid))?.[0];
         if (me === undefined) return '等待读取自己的座位';
         const partner = me ^ 1;
@@ -197,7 +214,7 @@
         busList = subscribe(busList, window.__dxcProtoBus?.subs, onPacket);
         logList = subscribe(logList, window.SGSMODULE, onLog);
         if (!mount()) return;
-        if (mode === 8 && offers.size) void loadData();
+        if (supportedModes.has(mode) && offers.size) void loadData();
         const text = describe();
         if (text !== lastText) panel.textContent = lastText = text;
     }
