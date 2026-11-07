@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         三国杀组阵面板 · 独立伴随版 DEBUG
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.2-debug.1
+// @version      1.0.2-debug.2
 // @description  诊断独立组阵面板：记录订阅、消息、座位与数据加载，支持导出诊断。
 // @icon         https://i0.hdslb.com/bfs/new_dyn/17ec41a0ca79633b77399065ab80da3f2138912.png
 // @match        https://game.4399iw2.com/yxxsgs/*
@@ -21,6 +21,19 @@
     'use strict';
 
     const ratesURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/zhen_winrate_latest.json';
+    // Mode 9 is the four-player 2v2 room observed in the diagnostic report.
+    const supportedModes = new Set([8, 9]);
+    let localUserID;
+    function currentUserID() {
+        if (localUserID) return localUserID;
+        try {
+            const raw = localStorage.getItem('DXC_selfUserID');
+            if (!raw) return undefined;
+            let value;
+            try { value = JSON.parse(raw); } catch { value = raw; }
+            return value != null && String(value) !== '0' ? String(value) : undefined;
+        } catch { return undefined; }
+    }
     const offers = new Map();
     const order = new Map();
     let roster = [], mode = 0, rates, names, panel, header;
@@ -67,7 +80,7 @@
     }
     function debugSnapshot() {
         let user, identityError;
-        try { user = JSON.parse(localStorage.getItem('DXC_selfUserID')); } catch (e) { identityError = debugError(e); }
+        try { user = currentUserID(); } catch (e) { identityError = debugError(e); }
         const bus = window.__dxcProtoBus;
         const me = roster.find(p => user != null && p[1] === String(user))?.[0];
         return {
@@ -90,7 +103,7 @@
         };
     }
     function debugReport() {
-        return {format: 'sgs22-zhen-companion-debug-v1', version: '1.0.2-debug.1', started: debugStarted,
+        return {format: 'sgs22-zhen-companion-debug-v1', version: '1.0.2-debug.2', started: debugStarted,
             exported: new Date().toISOString(), userAgent: navigator.userAgent, ratesURL,
             privacy: 'User IDs are replaced with stable labels. No chat, hand cards, cookies, tokens, or URL queries are intentionally collected.',
             snapshot: debugSnapshot(), counts: {...debugCounts}, droppedEvents: debugDropped, events: debugEvents.slice()};
@@ -116,7 +129,7 @@
         if (!debugUI?.isConnected && document.body) {
             debugUI = document.createElement('div'); debugUI.id = 'sgs22-zhen-debug-controls';
             debugUI.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:2147483647;background:#172033;color:#fff;padding:10px;font:12px/1.5 monospace;max-width:330px;border:1px solid #91a4c5;border-radius:6px';
-            const title = document.createElement('b'); title.textContent = '组阵 DEBUG 1.0.2-debug.1'; debugUI.appendChild(title);
+            const title = document.createElement('b'); title.textContent = '组阵 DEBUG 1.0.2-debug.2'; debugUI.appendChild(title);
             debugStatus = document.createElement('div'); debugUI.appendChild(debugStatus);
             for (const [label, action] of [
                 ['导出诊断', debugExport],
@@ -155,8 +168,13 @@
     function receive(type, data) {
         debugPacket("receive", type, data);
         switch (type) {
+            case 'CRespAuth':
+            case 'CRespLogin':
+                if (data.userID != null && String(data.userID) !== '0') localUserID = String(data.userID);
+                break;
             case 'CReqModeMatch':
             case 'CReqLobbyJoin':
+            case 'CRespLobbyTableCreate':
             case 'CRespLobbyTableJoin':
             case 'CRespLobbyJoin': {
                 const next = Number(data.modeIDInt || data.curModeID || data.modeID);
@@ -306,9 +324,8 @@
     }
 
     function describe() {
-        if (mode !== 8 || roster.length !== 4) return '等待 2v2 排位选将';
-        let uid;
-        try { uid = JSON.parse(localStorage.getItem('DXC_selfUserID')); } catch {}
+        if (!supportedModes.has(mode) || roster.length !== 4) return '等待 2v2 选将（当前模式 ' + mode + '，玩家 ' + roster.length + '）';
+        const uid = currentUserID();
         const me = roster.find(p => uid && p[1] === String(uid))?.[0];
         if (me === undefined) return '等待读取自己的座位';
         const partner = me ^ 1;
@@ -342,7 +359,7 @@
         busList = subscribe(busList, window.__dxcProtoBus?.subs, onPacket);
         logList = subscribe(logList, window.SGSMODULE, onLog);
         if (!mount()) return;
-        if (mode === 8 && offers.size) void loadData();
+        if (supportedModes.has(mode) && offers.size) void loadData();
         const text = describe();
         if (text !== lastText) panel.textContent = lastText = text;
     }
