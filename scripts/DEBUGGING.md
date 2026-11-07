@@ -1,6 +1,6 @@
 # Independent companion debug collection
 
-This diagnostic build is based on companion 1.0.1. It preserves the existing message-reading logic while recording why it may fail. It is not a confirmed fix.
+This diagnostic build is based on companion 1.0.2. It includes fixes for mode 9 and local identity extraction from login messages, plus diagnostics for any remaining failure. These fixes have been checked with the submitted draft sequence and simulated login identities; live confirmation is still needed.
 
 ## Installation
 
@@ -11,7 +11,7 @@ This diagnostic build is based on companion 1.0.1. It preserves the existing mes
 
 ## Capture one reproduction
 
-1. Confirm the floating **组阵 DEBUG 1.0.2-debug.1** controls appear at the bottom right.
+1. Confirm the floating **组阵 DEBUG 1.0.2-debug.2** controls appear at the bottom right.
 2. Enter 2v2 normally. When your selection box is visible, press **标记：已打开选将框**.
 3. Press **检查数据加载** once. This checks the rates and general-name dependencies even if draft detection is failing.
 4. Wait about 15 seconds while the box is visible if possible; finish selection normally if the timer requires it.
