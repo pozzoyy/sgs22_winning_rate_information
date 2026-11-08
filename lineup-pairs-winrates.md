@@ -2,11 +2,11 @@
 
 ## Files and stable URL
 
-- Archive each monthly dataset as `zhen_winrate_YYYY-MM.json` (for example, `zhen_winrate_2026-10.json`).
-- Keep `zhen_winrate_latest.json` as an exact, byte-for-byte copy of the newest published monthly dataset.
-- Currently, latest is October 2026: `zhen_winrate_2026-10.json` (73,356 entries).
+- Archive each monthly dataset as `lineup-pairs-winrates-YYYY-MM.json` (for example, `lineup-pairs-winrates-2026-10.json`).
+- Keep `lineup-pairs-winrates-latest.json` as an exact, byte-for-byte copy of the newest published monthly dataset.
+- Currently, latest is October 2026: `lineup-pairs-winrates-2026-10.json` (73,356 entries).
 - Both 组阵 userscript versions must load this stable raw URL:
-  https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/zhen_winrate_latest.json
+  https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs-winrates-latest.json
 - Preserve existing monthly archives when publishing a newer month.
 
 ## JSON structure
@@ -66,8 +66,8 @@ Exclude the header row. Check all populated source rows for valid sides, names, 
 ## Publishing a new month
 
 1. Convert and validate the new spreadsheet using the format and minimum-match cutoff above.
-2. Add `zhen_winrate_YYYY-MM.json` for the new month. Keep earlier monthly files unchanged.
-3. Replace the entire contents of `zhen_winrate_latest.json` with an exact copy of that newest monthly file. It must contain the JSON data itself, not a URL, redirect description, symlink, merged history, or filename.
+2. Add `lineup-pairs-winrates-YYYY-MM.json` for the new month. Keep earlier monthly files unchanged.
+3. Replace the entire contents of `lineup-pairs-winrates-latest.json` with an exact copy of that newest monthly file. It must contain the JSON data itself, not a URL, redirect description, symlink, merged history, or filename.
 4. Update the "Currently, latest" month and entry count in this document.
 5. Publish the monthly file, latest copy, and documentation update together in one commit where possible.
 6. Verify both files parse, every entry meets the schema, the exported entry count matches the eligible source rows, and their Git blob SHA or SHA-256 hashes are identical.

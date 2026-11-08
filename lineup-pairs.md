@@ -5,7 +5,7 @@
 - [Reference names.xlsx](https://github.com/pozzoyy/Temp/blob/main/sgs/names.xlsx): all 481 distinct reference names, with numeric IDs; exact spelling and variant prefixes preserved. IDs use Unicode name sorting and are specific to this snapshot.
 
 ## Source and selection
-Reference: `pozzoyy/sgs22_winning_rate_information/zhen_winrate_latest.json`, October 2026; identical blob to `zhen_winrate_2026-10.json`. Blob SHA: `c21f4fbcd79e5c4826d6710f54a873176af1fa79`. Names are collected from BOTH name positions of every `先手|name|name` / `后手|name|name` key, deduplicated.
+Reference: `pozzoyy/sgs22_winning_rate_information/lineup-pairs-winrates-latest.json`, October 2026; identical blob to `lineup-pairs-winrates-2026-10.json`. Blob SHA: `c21f4fbcd79e5c4826d6710f54a873176af1fa79`. Names are collected from BOTH name positions of every `先手|name|name` / `后手|name|name` key, deduplicated.
 Video input: `bilibili-filtered-titles-years.csv`. Sugar titles: 2023-11-08 through 2026-11-08 inclusive; 经典配阵: all dates in original export. No pair deduplication: repeated videos remain separate records.
 
 ## JSON fields

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         三国杀打小抄 · 2v2组阵面板
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.2
+// @version      1.0.3
 // @description  配合原版打小抄，按座位显示选将候选与组阵胜率。
 // @icon         https://i0.hdslb.com/bfs/new_dyn/17ec41a0ca79633b77399065ab80da3f2138912.png
 // @match        https://game.4399iw2.com/yxxsgs/*
@@ -20,7 +20,7 @@
 (() => {
     'use strict';
 
-    const ratesURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/zhen_winrate_latest.json';
+    const ratesURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs-winrates-latest.json';
     // Mode 9 is the four-player 2v2 room observed in the diagnostic report.
     const supportedModes = new Set([8, 9]);
     let localUserID;
