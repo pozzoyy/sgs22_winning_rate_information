@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         三国杀打小抄 · 2v2组阵面板
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.4
+// @version      1.0.5
 // @updateURL    https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
 // @downloadURL  https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
 // @homepageURL  https://github.com/pozzoyy/sgs22_winning_rate_information
-// @description  配合原版打小抄，按座位显示选将候选与组阵胜率。
+// @description  配合原版打小抄，按座位显示选将候选、组阵胜率与糖度标签。
 // @icon         https://i0.hdslb.com/bfs/new_dyn/17ec41a0ca79633b77399065ab80da3f2138912.png
 // @match        https://game.4399iw2.com/yxxsgs/*
 // @match        *://*.sanguosha.com/10/*
@@ -24,6 +24,23 @@
     'use strict';
 
     const ratesURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs-winrates-latest.json';
+    const sugarURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs.json';
+    const sugarLabels = ['零糖', '三分糖', '五分糖', '七分糖', '全糖', '经典配阵'];
+    const pairKey = (a, b) => JSON.stringify([a, b].sort());
+    function indexSugar(data) {
+        if (!Array.isArray(data?.records)) throw Error('Invalid lineup-pairs data');
+        const index = new Map();
+        for (const record of data.records) {
+            if (!Array.isArray(record.names) || record.names.length !== 2 ||
+                record.names.some(name => typeof name !== 'string') || !Array.isArray(record.labels)) {
+                throw Error('Invalid lineup-pairs record');
+            }
+            const key = pairKey(...record.names);
+            if (!index.has(key)) index.set(key, new Set());
+            for (const label of record.labels) if (sugarLabels.includes(label)) index.get(key).add(label);
+        }
+        return index;
+    }
     // Mode 9 is the four-player 2v2 room observed in the diagnostic report.
     const supportedModes = new Set([8, 9]);
     let localUserID;
@@ -39,7 +56,7 @@
     }
     const offers = new Map();
     const order = new Map();
-    let roster = [], mode = 0, rates, names, panel, header;
+    let roster = [], mode = 0, rates, names, sugar, panel, header;
     let dataStatus = '', loading = false, retryAt = 0, lastText;
     let busList, logList;
 
@@ -137,18 +154,23 @@
     }
 
     async function loadData() {
-        if (loading || (rates && names) || Date.now() < retryAt) return;
+        if (loading || (rates && names && sugar) || Date.now() < retryAt) return;
         loading = true;
         const results = await Promise.allSettled([
             names || generalNames(),
             rates || fetch(ratesURL).then(response => {
                 if (!response.ok) throw Error(String(response.status));
                 return response.json();
-            })
+            }),
+            sugar || fetch(sugarURL).then(response => {
+                if (!response.ok) throw Error(String(response.status));
+                return response.json();
+            }).then(indexSugar)
         ]);
         if (results[0].status === 'fulfilled') names = results[0].value;
         if (results[1].status === 'fulfilled') rates = results[1].value;
-        dataStatus = [!names && '武将名称', !rates && '胜率数据'].filter(Boolean).join('、');
+        if (results[2].status === 'fulfilled') sugar = results[2].value;
+        dataStatus = [!sugar && '糖度数据', !names && '武将名称', !rates && '胜率数据'].filter(Boolean).join('、');
         retryAt = Date.now() + 15000;
         loading = false;
     }
@@ -198,19 +220,25 @@
             '自己：' + (mine?.map(label).join('、') || '等待候选'),
             '队友：' + (theirs?.map(label).join('、') || '等待候选')];
         if (dataStatus) lines.push(dataStatus + '暂不可用，稍后重试');
-        if (!mine?.length || !theirs?.length || !rates || !names) return lines.join('\n');
+        if (!mine?.length || !theirs?.length || !names) return lines;
         const rows = [];
         for (const a of mine) for (const b of theirs) {
             const pair = [[mySeat, label(a)], [partnerSeat, label(b)]];
             if (mySeat % 2 === 0) pair.reverse();
             const [[s1, n1], [s2, n2]] = pair;
-            const stats = rates[[team, n1, n2].join('|')];
-            if (Array.isArray(stats)) rows.push({rate: stats[0], text:
-                `${s1} ${n1} + ${s2} ${n2}　${(100 * stats[0]).toFixed(1)}%（${stats[2]}/${stats[1]}）`});
+            const stats = rates?.[[team, n1, n2].join('|')];
+            const labels = sugar?.get(pairKey(n1, n2));
+            if (Array.isArray(stats) || labels) rows.push({
+                rate: Array.isArray(stats) ? stats[0] : -1,
+                green: Boolean(labels),
+                text: `${s1} ${n1} + ${s2} ${n2}　` +
+                    (Array.isArray(stats) ? `${(100 * stats[0]).toFixed(1)}%（${stats[2]}/${stats[1]}）` : '暂无胜率') +
+                    (labels?.size ? '　【' + sugarLabels.filter(label => labels.has(label)).join(' / ') + '】' : '')
+            });
         }
         rows.sort((a, b) => b.rate - a.rate);
-        lines.push(...(rows.length ? rows.map(row => row.text) : ['胜率表中没有对应组合']));
-        return lines.join('\n');
+        lines.push(...(rows.length ? rows : ['胜率表中没有对应组合']));
+        return lines;
     }
 
     function tick() {
@@ -218,8 +246,23 @@
         logList = subscribe(logList, window.SGSMODULE, onLog);
         if (!mount()) return;
         if (supportedModes.has(mode) && offers.size) void loadData();
-        const text = describe();
-        if (text !== lastText) panel.textContent = lastText = text;
+        const result = describe();
+        const lines = Array.isArray(result) ? result : [result];
+        const text = JSON.stringify(lines);
+        if (text !== lastText) {
+            const fragment = document.createDocumentFragment();
+            for (const line of lines) {
+                const row = document.createElement('div');
+                row.textContent = typeof line === 'string' ? line : line.text;
+                if (line.green) {
+                    row.style.color = '#22c55e';
+                    row.style.fontWeight = '600';
+                }
+                fragment.appendChild(row);
+            }
+            panel.replaceChildren(fragment);
+            lastText = text;
+        }
     }
     tick();
     setInterval(tick, 350);
