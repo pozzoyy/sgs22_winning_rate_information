@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         三国杀打小抄 · 2v2组阵面板
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.5
+// @version      1.0.6
 // @updateURL    https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
 // @downloadURL  https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
 // @homepageURL  https://github.com/pozzoyy/sgs22_winning_rate_information
@@ -25,7 +25,7 @@
 
     const ratesURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs-winrates-latest.json';
     const sugarURL = 'https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs.json';
-    const sugarLabels = ['零糖', '三分糖', '五分糖', '七分糖', '全糖', '经典配阵'];
+    const sugarLabels = ['经典配阵', '零糖', '三分糖', '五分糖', '七分糖', '全糖'];
     const pairKey = (a, b) => JSON.stringify([a, b].sort());
     function indexSugar(data) {
         if (!Array.isArray(data?.records)) throw Error('Invalid lineup-pairs data');
@@ -231,12 +231,18 @@
             if (Array.isArray(stats) || labels) rows.push({
                 rate: Array.isArray(stats) ? stats[0] : -1,
                 green: Boolean(labels),
+                sugarRank: labels ? sugarLabels.findIndex(label => labels.has(label)) : -1,
                 text: `${s1} ${n1} + ${s2} ${n2}　` +
                     (Array.isArray(stats) ? `${(100 * stats[0]).toFixed(1)}%（${stats[2]}/${stats[1]}）` : '暂无胜率') +
                     (labels?.size ? '　【' + sugarLabels.filter(label => labels.has(label)).join(' / ') + '】' : '')
             });
         }
-        rows.sort((a, b) => b.rate - a.rate);
+        rows.sort((a, b) => {
+            if (a.green !== b.green) return Number(b.green) - Number(a.green);
+            const rankA = a.sugarRank < 0 ? sugarLabels.length : a.sugarRank;
+            const rankB = b.sugarRank < 0 ? sugarLabels.length : b.sugarRank;
+            return rankA - rankB || b.rate - a.rate;
+        });
         lines.push(...(rows.length ? rows : ['胜率表中没有对应组合']));
         return lines;
     }
