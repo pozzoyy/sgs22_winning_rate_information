@@ -5,7 +5,7 @@
 - Archive each monthly dataset as `lineup-pairs-winrates-YYYY-MM.json` (for example, `lineup-pairs-winrates-2026-10.json`).
 - Keep `lineup-pairs-winrates-latest.json` as an exact, byte-for-byte copy of the newest published monthly dataset.
 - Currently, latest is October 2026: `lineup-pairs-winrates-2026-10.json` (73,356 entries).
-- Both 组阵 userscript versions must load this stable raw URL:
+- The maintained 组阵 companion userscript must load this stable raw URL:
   https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/lineup-pairs-winrates-latest.json
 - Preserve existing monthly archives when publishing a newer month.
 

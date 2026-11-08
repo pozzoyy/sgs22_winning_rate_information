@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name         三国杀打小抄 · 2v2组阵面板
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.3
+// @version      1.0.4
+// @updateURL    https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
+// @downloadURL  https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
+// @homepageURL  https://github.com/pozzoyy/sgs22_winning_rate_information
 // @description  配合原版打小抄，按座位显示选将候选与组阵胜率。
 // @icon         https://i0.hdslb.com/bfs/new_dyn/17ec41a0ca79633b77399065ab80da3f2138912.png
 // @match        https://game.4399iw2.com/yxxsgs/*

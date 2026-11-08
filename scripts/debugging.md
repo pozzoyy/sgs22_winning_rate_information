@@ -1,3 +1,7 @@
+# Historical debugging notes
+
+The diagnostic and combined userscripts described below were removed from this repository. These notes are retained for interpreting earlier reports; the installation steps below do not apply to the current release. For normal installation and automatic updates, follow the [README](../README.md).
+
 # Independent companion debug collection
 
 This diagnostic build is based on companion 1.0.2. It includes fixes for mode 9 and local identity extraction from login messages, plus diagnostics for any remaining failure. These fixes have been checked with the submitted draft sequence and simulated login identities; live confirmation is still needed.
