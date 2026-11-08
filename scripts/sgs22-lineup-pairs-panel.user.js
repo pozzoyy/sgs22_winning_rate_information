@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         三国杀打小抄 · 2v2组阵面板
 // @namespace    urn:sgs22:zhen-companion
-// @version      1.0.6
+// @version      1.0.7
 // @updateURL    https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
 // @downloadURL  https://raw.githubusercontent.com/pozzoyy/sgs22_winning_rate_information/main/scripts/sgs22-lineup-pairs-panel.user.js
 // @homepageURL  https://github.com/pozzoyy/sgs22_winning_rate_information
@@ -153,24 +153,62 @@
         return new Map(config.Character.map(p => [Number(p.CharacterId), (p.ai || '') + (p.Name || '').replaceAll('&', '')]));
     }
 
+    const resourceStatus = {
+        rates: {label: '配阵胜率', state: '未读取', count: 0},
+        sugar: {label: '糖阵信息', state: '未读取', count: 0}
+    };
+    function resourceLines() {
+        return Object.values(resourceStatus).map(item =>
+            item.label + '：' + item.state +
+            (item.state === '已读取' ? '，' + item.count + ' 条' +
+                (item.unique == null ? '' : '（' + item.unique + ' 组不重复配阵）') : ''));
+    }
+    async function readResource(key, url, parse) {
+        const status = resourceStatus[key];
+        status.state = '读取中';
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 20000);
+        try {
+            const response = await fetch(url, {signal: controller.signal});
+            if (!response.ok) throw Error('HTTP ' + response.status);
+            const parsed = parse(await response.json());
+            status.count = parsed.count;
+            status.unique = parsed.unique;
+            status.state = '已读取';
+            return parsed.value;
+        } catch (error) {
+            status.state = error?.name === 'AbortError' ? '读取超时，稍后重试' :
+                /^HTTP \d+$/.test(error?.message) ? '读取失败（' + error.message + '），稍后重试' :
+                '读取失败（网络或数据格式异常），稍后重试';
+            throw error;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+    function parseRates(data) {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) throw Error('Invalid rates');
+        const entries = Object.entries(data);
+        if (entries.some(([key, value]) => !/^(先手|后手)\|[^|]+\|[^|]+$/.test(key) ||
+            !Array.isArray(value) || value.length !== 3 ||
+            value.some(number => !Number.isFinite(number)))) throw Error('Invalid rate record');
+        return {value: data, count: entries.length};
+    }
+    function parseSugar(data) {
+        const value = indexSugar(data);
+        return {value, count: data.records.length, unique: value.size};
+    }
     async function loadData() {
         if (loading || (rates && names && sugar) || Date.now() < retryAt) return;
         loading = true;
         const results = await Promise.allSettled([
             names || generalNames(),
-            rates || fetch(ratesURL).then(response => {
-                if (!response.ok) throw Error(String(response.status));
-                return response.json();
-            }),
-            sugar || fetch(sugarURL).then(response => {
-                if (!response.ok) throw Error(String(response.status));
-                return response.json();
-            }).then(indexSugar)
+            rates || readResource('rates', ratesURL, parseRates),
+            sugar || readResource('sugar', sugarURL, parseSugar)
         ]);
         if (results[0].status === 'fulfilled') names = results[0].value;
         if (results[1].status === 'fulfilled') rates = results[1].value;
         if (results[2].status === 'fulfilled') sugar = results[2].value;
-        dataStatus = [!sugar && '糖度数据', !names && '武将名称', !rates && '胜率数据'].filter(Boolean).join('、');
+        dataStatus = [!names && '武将名称'].filter(Boolean).join('、');
         retryAt = Date.now() + 15000;
         loading = false;
     }
@@ -251,9 +289,9 @@
         busList = subscribe(busList, window.__dxcProtoBus?.subs, onPacket);
         logList = subscribe(logList, window.SGSMODULE, onLog);
         if (!mount()) return;
-        if (supportedModes.has(mode) && offers.size) void loadData();
+        void loadData();
         const result = describe();
-        const lines = Array.isArray(result) ? result : [result];
+        const lines = [...resourceLines(), ...(Array.isArray(result) ? result : [result])];
         const text = JSON.stringify(lines);
         if (text !== lastText) {
             const fragment = document.createDocumentFragment();
