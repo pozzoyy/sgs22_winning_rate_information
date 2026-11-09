@@ -12,7 +12,6 @@ Curated character pairings and monthly 2v2 lineup win rates, with a companion us
 | `lineup-pairs-winrates-YYYY-MM.json` | Monthly archives |
 | [lineup-pairs-winrates.md](lineup-pairs-winrates.md) | Win-rate format and publishing requirements |
 | [scripts/sgs22-lineup-pairs-panel.user.js](scripts/sgs22-lineup-pairs-panel.user.js) | Independent companion panel |
-| [scripts/debugging.md](scripts/debugging.md) | Historical diagnostic instructions; debug build is no longer included |
 
 ## Installation and automatic updates
 
